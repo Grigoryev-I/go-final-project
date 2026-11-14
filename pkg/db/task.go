@@ -18,7 +18,7 @@ type Task struct {
 const dateFormat = "20060102"
 
 func Tasks(limit int, search string) ([]*Task, error) {
-	query := `SELECT * FROM scheduler`
+	query := `SELECT id, date, title, comment, repeat FROM scheduler`
 
 	var (
 		rows *sql.Rows

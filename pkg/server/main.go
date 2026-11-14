@@ -12,7 +12,7 @@ import (
 const defaultPort = "7540"
 const webDir = "./web"
 
-func Start() {
+func Start() error {
 	api.Init()
 
 	http.Handle("/", http.FileServer(http.Dir(webDir)))
@@ -21,8 +21,10 @@ func Start() {
 	fmt.Printf("Сервер запущен: http://localhost%s\n", addr)
 
 	if err := http.ListenAndServe(addr, nil); err != nil {
-		log.Fatal(err)
+		return err
 	}
+
+	return nil
 }
 
 func getPort() string {
@@ -31,7 +33,7 @@ func getPort() string {
 	if envPort := os.Getenv("TODO_PORT"); envPort != "" {
 		if _, err := strconv.Atoi(envPort); err == nil {
 			port = envPort
-			log.Printf("Использую TODO_PORT=%s", port)
+			log.Printf("Использую переменную окружения TODO_PORT=%s", port)
 		} else {
 			log.Printf("Некорректное значение TODO_PORT = %q, использую %s", envPort, port)
 		}

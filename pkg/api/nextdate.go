@@ -181,6 +181,11 @@ func daysInMonth(date time.Time) int {
 }
 
 func nextDayHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeJson(w, map[string]string{"error": "unsupported method"}, http.StatusMethodNotAllowed)
+		return
+	}
+
 	nowStr := r.FormValue("now")
 	dateStr := r.FormValue("date")
 	repeat := r.FormValue("repeat")
@@ -190,7 +195,7 @@ func nextDayHandler(w http.ResponseWriter, r *http.Request) {
 		parsed, err := time.Parse(dateFormat, nowStr)
 
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			writeJson(w, map[string]string{"error": err.Error()}, http.StatusBadRequest)
 			return
 		}
 
@@ -199,7 +204,7 @@ func nextDayHandler(w http.ResponseWriter, r *http.Request) {
 
 	next, err := NextDate(now, dateStr, repeat)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		writeJson(w, map[string]string{"error": err.Error()}, http.StatusBadRequest)
 		return
 	}
 

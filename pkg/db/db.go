@@ -44,9 +44,14 @@ func Init(dbFile string) error {
 
 	if install {
 		if _, err = db.Exec(schema); err != nil {
+			db.Close()
 			return err
 		}
 	}
 
 	return nil
+}
+
+func Close() error {
+	return db.Close()
 }

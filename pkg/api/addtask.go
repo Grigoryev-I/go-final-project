@@ -20,7 +20,7 @@ func taskHandler(w http.ResponseWriter, r *http.Request) {
 	case http.MethodDelete:
 		deleteTaskHandler(w, r)
 	default:
-		http.Error(w, "unsupported method", http.StatusMethodNotAllowed)
+		writeJson(w, map[string]string{"error": "unsupported method"}, http.StatusMethodNotAllowed)
 		return
 	}
 }
@@ -29,59 +29,59 @@ func editTaskHandler(w http.ResponseWriter, r *http.Request) {
 	var task db.Task
 
 	if err := json.NewDecoder(r.Body).Decode(&task); err != nil {
-		writeJson(w, map[string]string{"error": err.Error()})
+		writeJson(w, map[string]string{"error": err.Error()}, http.StatusBadRequest)
 		return
 	}
 
 	if task.ID == "" {
-		writeJson(w, map[string]string{"error": "не указан идентификатор"})
+		writeJson(w, map[string]string{"error": "не указан идентификатор"}, http.StatusBadRequest)
 		return
 	}
 
 	if task.Title == "" {
-		writeJson(w, map[string]string{"error": "не указан заголовок задачи"})
+		writeJson(w, map[string]string{"error": "не указан заголовок задачи"}, http.StatusBadRequest)
 		return
 	}
 
 	if err := checkDate(&task); err != nil {
-		writeJson(w, map[string]string{"error": err.Error()})
+		writeJson(w, map[string]string{"error": err.Error()}, http.StatusBadRequest)
 		return
 	}
 
 	err := db.UpdateTask(&task)
 	if err != nil {
-		writeJson(w, map[string]string{"error": err.Error()})
+		writeJson(w, map[string]string{"error": err.Error()}, http.StatusBadRequest)
 		return
 	}
 
-	writeJson(w, map[string]string{})
+	writeJson(w, map[string]string{}, http.StatusOK)
 }
 
 func addTaskHandler(w http.ResponseWriter, r *http.Request) {
 	var task db.Task
 
 	if err := json.NewDecoder(r.Body).Decode(&task); err != nil {
-		writeJson(w, map[string]string{"error": err.Error()})
+		writeJson(w, map[string]string{"error": err.Error()}, http.StatusBadRequest)
 		return
 	}
 
 	if task.Title == "" {
-		writeJson(w, map[string]string{"error": "не указан заголовок задачи"})
+		writeJson(w, map[string]string{"error": "не указан заголовок задачи"}, http.StatusBadRequest)
 		return
 	}
 
 	if err := checkDate(&task); err != nil {
-		writeJson(w, map[string]string{"error": err.Error()})
+		writeJson(w, map[string]string{"error": err.Error()}, http.StatusBadRequest)
 		return
 	}
 
 	id, err := db.AddTask(task)
 	if err != nil {
-		writeJson(w, map[string]string{"error": err.Error()})
+		writeJson(w, map[string]string{"error": err.Error()}, http.StatusBadRequest)
 		return
 	}
 
-	writeJson(w, map[string]string{"id": strconv.FormatInt(id, 10)})
+	writeJson(w, map[string]string{"id": strconv.FormatInt(id, 10)}, http.StatusOK)
 }
 
 func checkDate(task *db.Task) error {
@@ -118,66 +118,71 @@ func checkDate(task *db.Task) error {
 func getTaskHandler(w http.ResponseWriter, r *http.Request) {
 	id := r.FormValue("id")
 	if id == "" {
-		writeJson(w, map[string]string{"error": "не указан идентификатор"})
+		writeJson(w, map[string]string{"error": "не указан идентификатор"}, http.StatusBadRequest)
 		return
 	}
 
 	task, err := db.GetTask(id)
 	if err != nil {
-		writeJson(w, map[string]string{"error": err.Error()})
+		writeJson(w, map[string]string{"error": err.Error()}, http.StatusBadRequest)
 		return
 	}
 
-	writeJson(w, task)
+	writeJson(w, task, http.StatusOK)
 }
 
 func deleteTaskHandler(w http.ResponseWriter, r *http.Request) {
 	id := r.FormValue("id")
 	if id == "" {
-		writeJson(w, map[string]string{"error": "не указан идентификатор"})
+		writeJson(w, map[string]string{"error": "не указан идентификатор"}, http.StatusBadRequest)
 		return
 	}
 
 	err := db.DeleteTask(id)
 	if err != nil {
-		writeJson(w, map[string]string{"error": err.Error()})
+		writeJson(w, map[string]string{"error": err.Error()}, http.StatusBadRequest)
 		return
 	}
 
-	writeJson(w, map[string]string{})
+	writeJson(w, map[string]string{}, http.StatusOK)
 }
 
 func doneTaskHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeJson(w, map[string]string{"error": "unsupported method"}, http.StatusMethodNotAllowed)
+		return
+	}
+
 	id := r.FormValue("id")
 	if id == "" {
-		writeJson(w, map[string]string{"error": "не указан идентификатор"})
+		writeJson(w, map[string]string{"error": "не указан идентификатор"}, http.StatusBadRequest)
 		return
 	}
 
 	task, err := db.GetTask(id)
 	if err != nil {
-		writeJson(w, map[string]string{"error": err.Error()})
+		writeJson(w, map[string]string{"error": err.Error()}, http.StatusBadRequest)
 		return
 	}
 
 	if task.Repeat == "" {
 		// удаляем одноразовую задачу
 		if err := db.DeleteTask(id); err != nil {
-			writeJson(w, map[string]string{"error": err.Error()})
+			writeJson(w, map[string]string{"error": err.Error()}, http.StatusBadRequest)
 			return
 		}
 	} else {
 		// переносим дату периодической задачи
 		next, err := NextDate(time.Now(), task.Date, task.Repeat)
 		if err != nil {
-			writeJson(w, map[string]string{"error": err.Error()})
+			writeJson(w, map[string]string{"error": err.Error()}, http.StatusBadRequest)
 			return
 		}
 		if err := db.UpdateDate(next, id); err != nil {
-			writeJson(w, map[string]string{"error": err.Error()})
+			writeJson(w, map[string]string{"error": err.Error()}, http.StatusBadRequest)
 			return
 		}
 	}
 
-	writeJson(w, map[string]string{})
+	writeJson(w, map[string]string{}, http.StatusOK)
 }

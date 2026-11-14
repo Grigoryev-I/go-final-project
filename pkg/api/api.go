@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 )
 
@@ -14,10 +15,17 @@ func Init() {
 	http.HandleFunc("/api/task/done", doneTaskHandler)
 }
 
-func writeJson(w http.ResponseWriter, data any) {
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-
-	if err := json.NewEncoder(w).Encode(data); err != nil {
+func writeJson(w http.ResponseWriter, data any, status int) {
+	body, err := json.Marshal(data)
+	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	w.WriteHeader(status)
+
+	if _, err := w.Write(body); err != nil {
+		log.Println("writeJson:", err)
 	}
 }
